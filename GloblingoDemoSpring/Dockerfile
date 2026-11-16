@@ -14,6 +14,7 @@ RUN ./mvnw -q -B package -DskipTests
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 RUN useradd -r -u 1001 globlingo
+RUN mkdir -p /app/data && chown -R globlingo:globlingo /app
 COPY --from=build /app/target/globlingo-0.0.1-SNAPSHOT.jar app.jar
 USER globlingo
 EXPOSE 8081
