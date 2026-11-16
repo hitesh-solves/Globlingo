@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Globlingo — Explore the world. Speak its languages.</title>
+  <meta name="description" content="Globlingo helps you learn languages by watching videos with clickable subtitles. Demo prototype built with HTML, CSS and vanilla JavaScript." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=20" />
+</head>
+<body>
+
+  <!-- ==========================================================================
+       ICON SPRITE
+       Every icon is drawn once here and reused with <use href="#i-...">.
+       Icons are simple line drawings that follow `currentColor`, so they always
+       match the colour of the text around them.
+       ========================================================================== -->
+  <svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.4 12 3l9 7.4V20a1 1 0 0 1-1 1h-5.2v-6.4H9.2V21H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.6 8.4-2.2 5.2-5.2 2.2 2.2-5.2z"/></symbol>
+    <symbol id="i-fire" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17c0 1.38 5 4 5 4s1.72-2.25 2.06-3.81A5 5 0 0 0 13 9.94a5 5 0 0 0-2.44-1.32 6 6 0 0 0-2.06 5.88Z"/></symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M17 3H7a2 2 0 0 0-2 2v16l7-3 7 3V5a2 2 0 0 0-2-2z"/></symbol>
+    <symbol id="i-shorts" viewBox="0 0 24 24"><rect x="6.4" y="2.6" width="11.2" height="18.8" rx="3.2"/><path d="m10.6 9.4 4.6 2.6-4.6 2.6z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3.2 9.5h17.6M3.2 14.5h17.6"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3a4.5 4.5 0 0 1 4.5 4.5V20zM16 5.2a3 3 0 0 1 0 5.6M17 14h.5a3.5 3.5 0 0 1 3.5 3.5V20h-4"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8zM19 15l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3m-4 0h8"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m10.2 8.4 5.6 3.6-5.6 3.6z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9.5 5.5v13M14.5 5.5v13"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="m4 9.6v4.8h3l4 3.4V6.2L7 9.6z"/><path d="M15.4 9.4a3.8 3.8 0 0 1 0 5.2"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m14.5 5-7 7 7 7"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.4l3.6 2"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-caret" viewBox="0 0 24 24"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></symbol>
+
+  </svg>
+
+  <!-- ==========================================================================
+       HEADER — logo on the left, search in the middle, language on the right.
+       ========================================================================== -->
+  <header class="topbar">
+    <div class="topbar__left">
+      <button class="iconbtn" id="nav-toggle" type="button"
+              aria-label="Show or hide the navigation" aria-expanded="false" aria-controls="sidebar">
+        <svg class="icon"><use href="#i-menu"></use></svg>
+      </button>
+
+      <a class="brand" href="#/home" aria-label="Globlingo home">
+        <img class="brand__logo" src="assets/globlingo-logo.svg" alt="Globlingo" width="168" height="48" />
+      </a>
+    </div>
+
+    <form class="search" id="search-form" role="search">
+      <button type="submit" class="search__submit" aria-label="Search YouTube">
+        <svg class="icon"><use href="#i-search"></use></svg>
+      </button>
+      <input type="search" id="search-input" placeholder="Search videos" aria-label="Search videos" autocomplete="off" />
+      <button type="button" class="search__clear" id="search-clear" aria-label="Clear search" hidden>
+        <svg class="icon"><use href="#i-close"></use></svg>
+      </button>
+      <div class="search__suggest" id="search-suggest" role="listbox" hidden></div>
+    </form>
+
+    <!-- Target language: a compact button that opens a searchable dropdown. -->
+    <div class="langpick" id="lang-pick">
+      <button class="langpick__button" id="lang-button" type="button"
+              aria-haspopup="listbox" aria-expanded="false" aria-controls="lang-menu">
+        <svg class="icon"><use href="#i-globe"></use></svg>
+        <span class="langpick__current" id="lang-current">English</span>
+        <svg class="icon langpick__caret"><use href="#i-caret"></use></svg>
+      </button>
+
+      <div class="langpick__menu" id="lang-menu" hidden>
+        <div class="langpick__search">
+          <svg class="icon"><use href="#i-search"></use></svg>
+          <input type="search" id="lang-search" placeholder="Search languages" aria-label="Search languages" autocomplete="off" />
+        </div>
+        <ul class="langpick__list" id="lang-list" role="listbox" aria-label="The language you want to learn"></ul>
+        <p class="langpick__empty" id="lang-empty" hidden>No language matches that search.</p>
+      </div>
+    </div>
+    <!-- Account status chip removed per design request; account page remains in sidebar/nav. -->
+  </header>
+
+  <!-- ==========================================================================
+       SIDEBAR — the only place primary navigation lives.
+       On desktop it is fixed beside the content; on small screens the header
+       button slides it in over the page.
+       ========================================================================== -->
+  <nav class="sidebar" id="sidebar" aria-label="Main sections">
+    <a class="sidebar__link" href="#/home" data-nav="home">
+      <svg class="icon"><use href="#i-home"></use></svg><span class="sidebar__label">Home</span>
+    </a>
+    <a class="sidebar__link" href="#/explore" data-nav="explore">
+      <svg class="icon"><use href="#i-compass"></use></svg><span class="sidebar__label">Explore</span>
+    </a>
+    <a class="sidebar__link" href="#/trending" data-nav="trending">
+      <svg class="icon"><use href="#i-fire"></use></svg><span class="sidebar__label">Trending</span>
+    </a>
+    <a class="sidebar__link" href="#/saved" data-nav="saved">
+      <svg class="icon"><use href="#i-bookmark"></use></svg><span class="sidebar__label">Saved</span>
+    </a>
+    <a class="sidebar__link" href="#/shorts" data-nav="shorts">
+      <svg class="icon"><use href="#i-shorts"></use></svg><span class="sidebar__label">Shorts</span>
+    </a>
+    <a class="sidebar__link" href="#/connect" data-nav="connect"><svg class="icon"><use href="#i-people"></use></svg><span class="sidebar__label">Connect with the World</span></a>
+    <a class="sidebar__link" href="#/tutor" data-nav="tutor"><svg class="icon"><use href="#i-spark"></use></svg><span class="sidebar__label">AI Tutor</span></a>
+    <a class="sidebar__link" href="#/account" data-nav="account">
+      <svg class="icon"><use href="#i-globe"></use></svg><span class="sidebar__label" id="nav-account-label">Account</span>
+    </a>
+  </nav>
+
+  <!-- Dims the page behind the open sidebar on small screens. -->
+  <div class="scrim" id="scrim" hidden></div>
+
+  <!-- ==========================================================================
+       MAIN CONTENT — only one <section> is visible at a time.
+       ========================================================================== -->
+  <main class="content" id="content">
+    <section class="view" id="view-welcome" data-view="welcome">
+      <div class="welcome-card">
+        <img src="assets/globlingo-logo.svg" alt="Globlingo" width="168" height="48" />
+        <p class="welcome-kicker">LEARN THROUGH THE WORLD'S VIDEOS</p>
+        <h1>Explore the world.<br /><span>Speak its languages.</span></h1>
+        <p class="welcome-copy">Watch, listen, and learn at your own pace. Create an account to keep your saved videos, or start exploring as a guest.</p>
+        <div class="welcome-actions">
+          <button class="btn" type="button" data-auth-screen="register">Create Account</button>
+          <button class="btn btn--quiet" type="button" data-auth-screen="login">Log In</button>
+          <button class="welcome-guest" id="continue-guest" type="button">Continue as Guest <span aria-hidden="true">→</span></button>
+        </div>
+        <p class="welcome-footnote">Guest browsing works without an account. Sign in when you want private saved videos.</p>
+      </div>
+    </section>
+
+
+    <!-- ============================ A. HOME ============================ -->
+    <section class="view" id="view-home" data-view="home">
+      <div class="chips" id="home-chips" role="tablist" aria-label="Categories"></div>
+      <div class="home-toolbar">
+        <button class="btn btn--quiet" id="home-refresh" type="button"><svg class="icon"><use href="#i-refresh"></use></svg> Refresh</button>
+      </div>
+      <p class="note" id="home-note"></p>
+      <div class="grid" id="home-grid"></div>
+      <div class="home-actions">
+        <button class="btn btn--quiet" id="home-retry" type="button" hidden>Retry</button>
+        <button class="btn btn--quiet" id="home-more" type="button" hidden>Load more</button>
+      </div>
+      <div class="empty" id="home-empty" hidden>
+        <h2>No videos in this category yet</h2>
+        <p>Try another category or language.</p>
+      </div>
+    </section>
+
+    <!-- ============================ B. EXPLORE ============================ -->
+    <section class="view" id="view-explore" data-view="explore">
+      <div class="pagehead">
+        <h1>Explore</h1>
+        <p>Search real videos from YouTube, or explore the bundled sample catalogue.</p>
+      </div>
+
+      <div class="filters">
+        <label class="field">
+          <span>Language</span>
+          <select id="filter-language"></select>
+        </label>
+        <label class="field">
+          <span>Category</span>
+          <select id="filter-category"></select>
+        </label>
+        <label class="field">
+          <span>YouTube topic</span>
+          <select id="filter-topic" aria-label="YouTube search topic"></select>
+        </label>
+        <label class="field">
+          <span>Sort videos</span>
+          <select id="video-sort" aria-label="Sort YouTube search results">
+            <option value="relevance">Most relevant</option>
+            <option value="date">Latest</option>
+            <option value="viewCount">Most viewed</option>
+          </select>
+        </label>
+        <button class="btn btn--quiet" type="button" id="explore-clear">
+          <svg class="icon"><use href="#i-close"></use></svg> Clear
+        </button>
+        <button class="btn btn--quiet" type="button" id="explore-refresh">
+          <svg class="icon"><use href="#i-refresh"></use></svg> Refresh
+        </button>
+      </div>
+
+      <p class="note" id="explore-count"></p>
+      <p class="api-feedback" id="search-feedback" role="status" hidden></p>
+      <button class="btn btn--quiet" type="button" id="search-retry" hidden>Retry YouTube search</button>
+      <div class="grid" id="explore-grid"></div>
+      <div class="load-more-wrap">
+        <button class="btn btn--quiet" type="button" id="load-more-videos" hidden>Load more</button>
+      </div>
+
+      <div class="empty" id="explore-empty" hidden>
+        <h2>No videos match that search</h2>
+        <p>Try a shorter word, or clear the filters to see everything.</p>
+        <button class="btn" type="button" id="explore-reset">Show all videos</button>
+      </div>
+    </section>
+
+    <!-- ============================ C. TRENDING ============================ -->
+    <section class="view" id="view-trending" data-view="trending">
+      <div class="pagehead">
+        <h1>Trending</h1>
+        <p>YouTube’s most popular chart for the US region. It is not an all-category Trending feed; an API key is required.</p>
+      </div>
+      <div class="grid" id="trending-grid"></div>
+      <p class="api-feedback" id="trending-feedback" role="status" hidden></p>
+      <div class="load-more-wrap">
+        <button class="btn btn--quiet" type="button" id="load-more-trending" hidden>Load more</button>
+      </div>
+      <div class="empty" id="trending-empty" hidden>
+        <h2>No trending videos available</h2>
+        <p id="trending-message">Configure the YouTube API key to see trending videos, or check your internet connection.</p>
+        <button class="btn btn--quiet" id="trending-retry" type="button">Retry</button>
+      </div>
+    </section>
+
+    <!-- ============================ D. SAVED VIDEOS ============================ -->
+    <section class="view" id="view-saved" data-view="saved">
+      <div class="pagehead">
+        <h1>Saved Videos</h1>
+        <p>Videos you've saved for later. They are stored by the backend database.</p>
+      </div>
+      <div class="grid" id="saved-grid"></div>
+      <div class="empty" id="saved-empty" hidden>
+        <h2>No saved videos yet</h2>
+        <p>Click the bookmark icon on any video to save it here.</p>
+      </div>
+    </section>
+
+    <section class="view" id="view-account" data-view="account">
+      <div class="pagehead">
+        <h1>Your account</h1>
+        <p id="account-status">Choose how you’d like to use Globlingo.</p>
+      </div>
+      <div class="auth-message" id="auth-message" role="status" aria-live="polite" hidden></div>
+      <button class="btn btn--quiet" id="existing-login-button" type="button" hidden>Log in</button>
+      <div class="auth-screen" id="auth-screen-welcome">
+        <p class="auth-intro">Sign in to sync saved videos, or continue browsing as a guest.</p>
+        <div class="welcome-actions welcome-actions--compact">
+          <button class="btn" type="button" data-auth-screen="register">Create Account</button>
+          <button class="btn btn--quiet" type="button" data-auth-screen="login">Log In</button>
+          <button class="welcome-guest" id="account-continue-guest" type="button">Continue as Guest →</button>
+        </div>
+      </div>
+      <form class="account-form auth-screen" id="register-form" data-auth-view="register" hidden>
+        <h2>Create your account</h2>
+        <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" maxlength="320" required /></label>
+        <label class="field"><span>Password (12 characters minimum)</span><input name="password" type="password" autocomplete="new-password" minlength="12" required /></label>
+        <label class="field"><span>Confirm password</span><input name="confirmPassword" type="password" autocomplete="new-password" minlength="12" required /></label>
+        <button class="btn auth-submit" type="submit">Create Account</button>
+        <p class="auth-switch">Already have an account? <button type="button" data-auth-screen="login">Log in</button></p>
+        <button class="text-button" type="button" data-auth-screen="welcome">Back to welcome</button>
+      </form>
+      <form class="account-form auth-screen" id="verify-form" data-auth-view="verify" hidden>
+        <h2>Verify your email</h2>
+        <p class="auth-intro">Enter the six-digit code sent to your email. It expires after 10 minutes.</p>
+        <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" readonly required /></label>
+        <label class="field"><span>Verification code</span><input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required /></label>
+        <button class="btn auth-submit" type="submit">Verify Email</button>
+        <button class="text-button" type="button" id="resend-verification">Resend code</button>
+        <button class="text-button" type="button" data-auth-screen="register">Back to registration</button>
+      </form>
+      <form class="account-form auth-screen" id="login-form" data-auth-view="login" hidden>
+        <h2>Welcome back</h2>
+        <label class="field"><span>Email</span><input name="email" type="email" autocomplete="username" maxlength="320" required /></label>
+        <label class="field"><span>Password</span><input name="password" type="password" autocomplete="current-password" required /></label>
+        <button class="btn auth-submit" type="submit">Log In</button>
+        <p class="auth-switch">New to Globlingo? <button type="button" data-auth-screen="register">Create an account</button></p>
+        <button class="text-button" type="button" data-auth-screen="welcome">Back to welcome</button>
+      </form>
+      <div id="account-profile" class="auth-screen" hidden>
+        <p class="auth-intro" id="account-profile-copy"></p>
+        <button class="btn btn--quiet" id="leave-guest-button" type="button" hidden>Leave guest mode</button>
+        <button class="btn btn--quiet" id="logout-button" type="button">Sign out</button>
+      </div>
+    </section>
+
+    <!-- ============================ E. SHORTS ============================ -->
+    <section class="view" id="view-shorts" data-view="shorts">
+      <div class="pagehead">
+        <h1>Shorts</h1>
+        <p>Discover short-duration YouTube videos for language learning. Duration does not confirm that a video is a YouTube Short.</p>
+      </div>
+      <div class="filters shorts__filters" aria-label="Short video discovery filters">
+        <label class="field"><span>Learning language</span><select id="shorts-language"><option value="all">All languages</option><option value="header">Use header language</option></select></label>
+        <label class="field"><span>Topic</span><select id="shorts-topic"><option value="all">All topics</option></select></label>
+        <label class="field"><span>Sort by</span><select id="shorts-order"><option value="date">Recently published</option><option value="viewCount">Most viewed</option><option value="relevance">Relevance</option></select></label>
+        <label class="field shorts__query"><span>Search</span><input id="shorts-query" type="search" maxlength="120" placeholder="Comedy, vlogs, travel…" /></label>
+        <button class="btn" id="shorts-search" type="button">Search</button>
+        <button class="btn btn--quiet" id="shorts-refresh" type="button"><svg class="icon"><use href="#i-refresh"></use></svg> Refresh</button>
+      </div>
+      <p class="shorts__notice" id="shorts-status" role="status" aria-live="polite"></p>
+      <button class="btn btn--quiet" id="shorts-retry" type="button" hidden>Retry search</button>
+      <div class="shorts-feed" id="shorts-results" aria-live="polite"></div>
+      <div class="load-more-wrap"><button class="btn btn--quiet" id="shorts-load-more" type="button" hidden>Load more</button></div>
+      <p class="shorts__notice">YouTube’s short-duration filter returns videos under four minutes; the Data API does not confirm that every result is a YouTube Short.</p>
+    </section>
+
+    <section class="view" id="view-connect" data-view="connect">
+      <div class="pagehead"><h1>Connect with the World</h1><p>Meet People. Practice Languages. Explore Cultures.</p></div>
+      <div class="filters connect__filters">
+        <label class="field"><span>Find a platform</span><input id="connect-search" type="search" placeholder="Search platforms…" /></label>
+        <label class="field"><span>Category</span><select id="connect-category"><option value="all">All categories</option><option>Random Video Chat</option><option>Language Exchange</option><option>Global Communities</option><option>Text and Voice Chat</option></select></label>
+      </div>
+      <p class="note" id="connect-count" aria-live="polite"></p>
+      <div class="connect-grid" id="connect-grid"></div>
+      <div class="empty" id="connect-empty" hidden><h2>No platforms found</h2><p>Try another search or category.</p></div>
+      <aside class="connect-safety"><strong>Safety reminder</strong><p>You are leaving Globlingo and visiting an external platform. Be careful when interacting with strangers. Never share your passwords, home address, financial information or other sensitive personal details.</p><p>Review each platform’s age requirements, community guidelines and privacy policy. Globlingo does not monitor or verify external users.</p></aside>
+    </section>
+
+    <section class="view" id="view-tutor" data-view="tutor">
+      <div class="pagehead"><h1>AI Tutor — Speak. Learn. Improve.</h1><p>Speak in your target language. I’ll help you improve.</p></div>
+      <div class="tutor-panel">
+        <div class="tutor-languages">
+          <label class="field"><span>Target language</span><select id="tutor-target-language"></select></label>
+          <label class="field"><span>Explanation language</span><select id="tutor-explanation-language"></select></label>
+        </div>
+        <div class="tutor-recording"><button class="btn" id="tutor-mic" type="button"><svg class="icon"><use href="#i-mic"></use></svg> Start recording</button><button class="btn btn--quiet" id="tutor-stop" type="button" hidden>Stop recording</button><p id="tutor-listening" class="tutor-status" role="status" aria-live="polite"></p></div>
+        <label class="field tutor-sentence"><span>Your sentence (editable)</span><textarea id="tutor-sentence" rows="5" maxlength="2000" placeholder="Type a sentence or use the microphone…"></textarea></label>
+        <button class="btn" id="tutor-check" type="button">Check My Grammar</button>
+        <p class="tutor-status" id="tutor-error" role="status" aria-live="polite"></p>
+        <section class="tutor-result" id="tutor-result" hidden aria-live="polite">
+          <h2>Your Original Sentence</h2><p id="tutor-original"></p>
+          <h2>Corrected Sentence</h2><p id="tutor-corrected"></p>
+          <h2>Why was it incorrect?</h2><ul id="tutor-mistakes"></ul>
+          <h2>Speak More Naturally</h2><p id="tutor-natural"></p>
+          <h2>Practice Tip</h2><p id="tutor-tip"></p>
+        </section>
+        <p class="tutor-disclosure">Grammar feedback is AI-generated and may not capture every context or dialect. Speech recognition requires a supported browser and may send audio to the browser vendor’s speech service.</p>
+      </div>
+    </section>
+
+    <!-- ============================ D. WATCH ============================ -->
+    <section class="view watch-split" id="view-watch" data-view="watch">
+      <button class="btn btn--quiet back" type="button" id="watch-back">
+        <svg class="icon"><use href="#i-back"></use></svg> Back
+      </button>
+
+      <div class="watch-main">
+      <!-- Sample catalogue entries use the simulated player; YouTube entries use YouTube's embed player. -->
+      <figure class="player" id="player">
+        <div class="player__frame" id="player-frame">
+          <div class="player__embed" id="player-embed" hidden></div>
+          <img class="player__poster" id="player-poster" src="" alt="" />
+          <div class="player__center">
+            <button class="player__bigplay" id="player-play" type="button" aria-label="Play">
+              <svg class="icon"><use href="#i-play"></use></svg>
+            </button>
+          </div>
+          <span class="player__badge" id="player-badge">Sample player — simulated playback</span>
+        </div>
+        <div class="player__bar" id="player-bar">
+          <button class="player__icon" id="player-toggle" type="button" aria-label="Play or pause">
+            <svg class="icon"><use href="#i-play"></use></svg>
+          </button>
+          <span class="player__time" id="player-time">0:00 / 0:00</span>
+          <div class="player__track" id="player-track" role="slider" tabindex="0"
+               aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="player__fill" id="player-fill"></div>
+          </div>
+          <button class="player__icon" id="player-mute" type="button" aria-label="Sound">
+            <svg class="icon"><use href="#i-volume"></use></svg>
+          </button>
+        </div>
+      </figure>
+
+      <h1 class="watch-title" id="watch-title">Choose a video to begin</h1>
+      <p class="watch-sub" id="watch-sub"></p>
+
+      <p class="watch-desc" id="watch-desc"></p>
+      </div>
+
+      <!-- Subtitles: every word is a button. Clicking one opens the popup. -->
+      <section class="subs">
+        <header class="subs__head">
+          <h2>Subtitles</h2>
+          <div class="subs__tools">
+            <span class="pill" id="subtitle-mode">Sample subtitles</span>
+            <button class="btn btn--quiet btn--sm" type="button" id="translation-toggle">
+              <span id="translation-label">Hide English</span>
+            </button>
+          </div>
+        </header>
+        <p class="subs__hint">Tap any word to see its meaning.</p>
+        <ol class="subs__list" id="subtitle-list"></ol>
+      </section>
+
+      <p class="demo-note" id="watch-note">
+        Sample catalogue playback and captions are demonstrations. YouTube embeds play the selected YouTube video.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- ==========================================================================
+       FOOTER — sits in normal flow after the content, so it is always reached
+       by scrolling and never covers a video.
+       ========================================================================== -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <a class="footer__logo-link" href="#/home" aria-label="Globlingo home">
+          <img class="footer__logo" src="assets/globlingo-logo.svg" alt="Globlingo" width="168" height="48" />
+        </a>
+        <p class="footer__tagline">Explore the world. Speak its languages.</p>
+      </div>
+
+      <div class="footer__about">
+        <h2 class="footer__heading">About Globlingo</h2>
+        <p>
+          Globlingo — Explore the world, speak its languages. A language-learning platform featuring multilingual videos, interactive subtitles, clickable word meanings, and an AI Tutor for grammar correction and speaking practice.
+        </p>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <p class="footer__copy">© <span id="footer-year"></span> Globlingo. All rights reserved.</p>
+      <p class="footer__note">A front-end demo — every video, subtitle and translation here is sample content.</p>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
+       WORD POPUP — filled in by script.js when a subtitle word is clicked.
+       ========================================================================== -->
+  <div class="popup" id="word-popup" role="dialog" aria-label="Word details" hidden>
+    <button class="popup__close" id="word-popup-close" type="button" aria-label="Close">
+      <svg class="icon"><use href="#i-close"></use></svg>
+    </button>
+    <p class="popup__word" id="wp-word"></p>
+    <p class="popup__pron" id="wp-pronunciation" hidden>
+      <span id="wp-phonetic"></span>
+      <button class="popup__audio" id="wp-audio" type="button" aria-label="Play pronunciation" hidden>
+        <svg class="icon"><use href="#i-volume"></use></svg>
+      </button>
+    </p>
+    <dl class="popup__rows">
+      <dt>Meaning</dt><dd id="wp-meaning"></dd>
+      <dt>Translation</dt><dd id="wp-translation"></dd>
+      <dt>Explanation</dt><dd id="wp-explanation"></dd>
+      <dt>Example</dt><dd id="wp-example"></dd>
+    </dl>
+    <p class="popup__source" id="wp-source">Word details</p>
+  </div>
+
+  <!-- Short feedback messages -->
+  <div class="toasts" id="toast-region" role="status" aria-live="polite"></div>
+
+  <noscript>
+    <p class="noscript">Globlingo needs JavaScript enabled to switch sections and open the subtitles.</p>
+  </noscript>
+
+  <!-- data.js holds the sample catalogue; script.js holds the app logic -->
+  <script src="data.js?v=11"></script>
+  <script src="script.js?v=18"></script>
+</body>
+</html>

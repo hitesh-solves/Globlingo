@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Globlingo — logo lockup.
+
+  THE IDEA
+  One shape carries the whole brand: a solid globe that has grown a small
+  speech tail. "The world" and "talking" in a single form, which is exactly what
+  Globlingo is — you learn a language by hearing the world speak it.
+
+  The globe's grid is NOT drawn on top in a second colour. It is punched out of
+  the disc with a mask, so those lines are genuinely transparent. On the dark
+  header and footer they read as the page showing through, which keeps the mark
+  crisp at small sizes instead of turning into grey mush.
+
+  The red play triangle is the only colour in the mark. Solid shapes survive
+  being shrunk to a 30px header far better than thin outlines do.
+
+  Transparent background. Light strokes and fills so it belongs on a dark page.
+  No gradients, no decoration, nothing borrowed from another brand.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 48" width="168" height="48"
+     role="img" aria-labelledby="globlingo-logo-title">
+  <title id="globlingo-logo-title">Globlingo</title>
+
+  <!--
+    The mask holds the globe's grid. White = keep, black = punch through.
+    So the disc stays solid and the grid lines become transparent.
+  -->
+  <mask id="globlingo-grid" maskUnits="userSpaceOnUse" x="0" y="0" width="168" height="48">
+    <rect x="0" y="0" width="168" height="48" fill="#ffffff" />
+    <g fill="none" stroke="#000000" stroke-width="2.4" stroke-linecap="round">
+      <!-- meridian: the line from pole to pole -->
+      <ellipse cx="23" cy="20.5" rx="8" ry="15" />
+      <!-- equator -->
+      <path d="M8 20.5H38" />
+    </g>
+  </mask>
+
+  <!-- The globe. Solid soft white, with the grid punched out of it. -->
+  <circle cx="23" cy="20.5" r="15" fill="#F5F5F5" mask="url(#globlingo-grid)" />
+
+  <!--
+    The speech tail, drawn as a separate solid shape. Its two inner corners sit
+    INSIDE the disc, so the two whites meet with no seam and no gap to see.
+  -->
+  <path d="M10 27 7 40.5 15 33Z" fill="#F5F5F5" />
+
+  <!-- The play triangle: the one accent, and the "watch a video" half of the idea. -->
+  <path d="M20.4 16.6 27.6 20.5 20.4 24.4Z"
+        fill="#E50914" stroke="#E50914" stroke-width="1.6" stroke-linejoin="round" />
+
+  <!--
+    The wordmark. A system sans is used on purpose: an <img> cannot load a web
+    font, so asking for Plus Jakarta Sans would only ever fall back anyway.
+    textLength pins the width so the lockup keeps its proportions even when a
+    different font resolves.
+  -->
+  <text x="49" y="30" textLength="115" lengthAdjust="spacingAndGlyphs"
+        font-family="'Plus Jakarta Sans','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="25" font-weight="700" letter-spacing="-0.4"
+        fill="#F5F5F5">Globlingo</text>
+</svg>

@@ -1,0 +1,30 @@
+# Secrets / env
+.env
+.env.*
+*.local
+
+# Backend build output
+GloblingoDemoSpring/target/
+
+# Local H2 database + logs
+GloblingoDemoSpring/data/
+*.log
+*.trace.db
+
+# Dependencies / IDE
+node_modules/
+.vscode/
+.idea/
+*.iml
+
+# OS junk
+Thumbs.db
+Desktop.ini
+NUL
+
+# Outdated duplicate frontend copy (kept on disk, not in repo)
+/Globlingo/
+
+# Python test scripts artifacts
+__pycache__/
+*.pyc
