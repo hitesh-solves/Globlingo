@@ -35,6 +35,9 @@ public class SecurityConfig {
     @Value("${app.security.session-cookie-secure:false}")
     private boolean secureCookies;
 
+    @Value("${app.security.csrf-cookie-samesite:Lax}")
+    private String csrfCookieSameSite;
+
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
@@ -55,7 +58,7 @@ public class SecurityConfig {
         CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         repository.setCookieCustomizer(cookie -> cookie
                 .path("/")
-                .sameSite("Lax")
+                .sameSite(csrfCookieSameSite)
                 .secure(secureCookies));
         return repository;
     }
