@@ -28,3 +28,8 @@ NUL
 # Python test scripts artifacts
 __pycache__/
 *.pyc
+
+# AI-agent development notes (kept locally, not in repo)
+ANTIGRAVITY_PROGRESS.md
+TRAE_PROGRESS.md
+SHORTS-INTEGRATION.md

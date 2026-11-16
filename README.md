@@ -1,145 +1,112 @@
 # Globlingo
 
-Globlingo is a vanilla HTML/CSS/JavaScript frontend with a Spring Boot API. It
-combines a clearly labelled sample learning experience with optional YouTube
-search/trending, real YouTube playback, user accounts, private saved videos and
-private in-app channel lists.
+**Explore the world. Speak its languages.**
 
-## What works
+Globlingo is a language-learning platform that helps you learn a language by
+watching real videos with interactive, clickable subtitles, word meanings,
+translations, and an AI Tutor for grammar correction and speaking practice.
 
-- Home, Explore, Shorts, the dictionary, and bundled captions/translations use
-  hand-authored sample data. The sample video/short player advances a simulated
-  clock; these entries do not represent playable source media.
-- Trending and search call YouTube Data API v3 when `YOUTUBE_API_KEY` is set.
-  Returned YouTube videos play in YouTube's privacy-enhanced embed. YouTube
-  controls whether a video is playable and whether captions are available.
-- Explore search supports YouTube's `relevance`, `date`, and `viewCount` sort
-  orders and uses the official `nextPageToken` for Load More. Pages are
-  de-duplicated by video ID. Topic hints and typed search text are combined;
-  the API language is passed as a ranking hint and does not verify each video's
-  language. `viewCount` is not an official trending feed;
-  Trending uses YouTube's `mostPopular` chart endpoint and supports its
-  continuation token when YouTube returns one. The chart is not an all-category
-  Trending feed.
-- The header picker contains a searchable set of commonly used ISO 639-1
-  languages. Listing a language does not guarantee YouTube search support or
-  available videos/captions. The API's `relevanceLanguage` is a ranking hint,
-  not proof that each returned video is in that language; unknown videos remain
-  labelled as language unavailable.
-- Globlingo does not download arbitrary YouTube caption tracks. Caption-track
-  listing and download require YouTube OAuth authorization; a public API key
-  alone is not enough. For embedded YouTube playback, use the player's CC menu.
-- Translation is currently unavailable from a provider. Sample dictionary
-  material is labelled as a demo; no generated or fabricated live translation
-  is returned.
-- Signup/login use server-side sessions and BCrypt hashes. Saved videos and
-  in-app channel subscriptions belong to the signed-in account. The subscription
-  API records a Globlingo preference only; it does not change a YouTube account.
-- Existing legacy `saved_videos` and `subscribed_channels` rows stay in the
-  existing H2 schema. They are unassigned and are not exposed through the new
-  authenticated APIs; no data claim/transfer has been performed.
+## Features
 
-## Project layout
+- **Multilingual video discovery** — Home, Explore, Trending and Shorts feed
+  real YouTube videos via the YouTube Data API v3.
+- **Interactive subtitles** — timed captions with clickable words, English
+  meanings, translations, and click-to-seek.
+- **Transcript pipeline** — Supadata captions with automatic fallback to
+  yt-dlp captions and optional faster-whisper speech-to-text.
+- **AI Tutor** — grammar correction and speaking practice via browser speech
+  recognition, backed by Gemini/Groq with LibreTranslate fallback.
+- **User accounts** — email + OTP verification, guest mode, saved videos and
+  channel subscriptions.
+- **Connect with the World** — curated directory of language-exchange platforms.
 
-- `index.html`, `style.css`, `script.js`, `data.js`, `assets/`: active frontend.
-- `GloblingoDemoSpring/`: Spring Boot API and H2 persistence.
-- `Globlingo/`: older frontend copy; it is not loaded by the root page.
+## Tech stack
 
-## Local setup
+- **Frontend:** vanilla HTML/CSS/JavaScript (no framework), hash routing.
+- **Backend:** Java 17+, Spring Boot 3, Spring Security, Spring Data JPA.
+- **Database:** H2 (file mode) — swap the JDBC URL for any JPA-compatible DB.
+- **Integrations:** YouTube Data API v3 + IFrame Player API, Supadata,
+  yt-dlp, faster-whisper, dictionaryapi.dev, LibreTranslate, Gemini, Groq,
+  SMTP email.
 
-1. Use Java 17. From `GloblingoDemoSpring`, start the backend with
-   `.\mvnw.cmd spring-boot:run`
-   It listens on port 8081. The existing H2 file remains at
-   `GloblingoDemoSpring/data/globlingo`; do not delete it. Run only one backend
-   process against this file at a time.
-2. Serve the root frontend over HTTP, for example with VS Code Live Server on
-   port 5500 or 5501. Do not use `file://`. Both `localhost` and `127.0.0.1`
-   origins are allowed by default; the frontend calls the backend on the same
-   hostname at port 8081. Same-origin hosting uses `/api`.
-3. New visitors see the welcome screen and can create an account, log in, or
-   continue as a guest. Guest bookmarks stay in that browser; account bookmarks
-   are stored privately by the backend. Passwords must be at least 12
-   characters and no more than 72 UTF-8 bytes.
+## Project structure
 
-## Configuration
+```
+Globlingo/                  # Frontend (static files)
+  index.html  style.css  script.js  data.js  assets/
+GloblingoDemoSpring/       # Backend (Spring Boot)
+  src/main/java/...        # controllers, services, models, repositories
+  src/main/resources/      # application.properties
+  scripts/whisper_transcribe.py
+  mvnw / pom.xml
+```
 
-- `PORT`: backend port (default `8081`).
-- `YOUTUBE_API_KEY`: YouTube Data API v3 key, held on the backend. Configure API
-  restrictions and quota monitoring in Google Cloud. No key is present in this
-  checkout, so live API calls have not been verified.
-- `APP_CORS_ALLOWED_ORIGINS`: comma-separated exact frontend origins, e.g.
-  `https://learn.example.com`. Avoid wildcard origins with credentialed sessions.
-- `SESSION_COOKIE_SECURE`: set `true` behind HTTPS in deployed environments;
-  defaults to `false` for local HTTP.
-- `SESSION_COOKIE_SAME_SITE`: defaults to `lax`. The current setup expects the
-  frontend and API to be same-site. Cross-site deployments need a deliberate
-  cookie/CORS/CSRF configuration review and HTTPS.
-- `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`,
-  `MAIL_SMTP_AUTH`, and `MAIL_SMTP_STARTTLS_ENABLE` (legacy alias
-  `MAIL_SMTP_STARTTLS` is also accepted): SMTP settings for email OTP
-  verification. `MAIL_HOST` and `MAIL_FROM` are required before new signup can
-  proceed. Use provider-issued credentials stored in the process environment;
-  never put them in frontend files or tracked properties.
+## Setup
 
-For Gmail, enable 2-Step Verification and create a Google App Password for
-Mail. Set `MAIL_HOST=smtp.gmail.com`, `MAIL_PORT=587`, `MAIL_USERNAME` to the
-full Gmail address, `MAIL_PASSWORD` to that 16-character App Password,
-`MAIL_FROM` to the same address, `MAIL_SMTP_AUTH=true`, and
-`MAIL_SMTP_STARTTLS_ENABLE=true` in the backend process environment before
-starting Spring Boot. A normal Gmail password will not authenticate SMTP.
-For example, in PowerShell, set these with `$env:MAIL_HOST = 'smtp.gmail.com'`
-and corresponding `$env:MAIL_*` assignments in the same terminal session.
-- `H2_CONSOLE_ENABLED`: defaults to `false`; do not expose the console in
-  deployment.
-- `GLOBLINGO_API_BASE` (frontend): optional API base URL, set before loading
-  `script.js` when the default `/api` or localhost routing does not apply.
+### Prerequisites
 
-CSRF protection is enabled for state-changing requests. The frontend obtains a
-CSRF token from `/api/auth/csrf` and sends it in `X-XSRF-TOKEN`. Keep HTTPS,
-secure cookies, an exact CORS allowlist, secret management, backups, rate
-limiting, monitoring, and account recovery in mind before public launch.
+- Java 17+ and Maven (or use `./mvnw`)
+- Python 3 + `yt-dlp` (`pip install yt-dlp`) for caption fallback
+- Optional: `faster-whisper` for speech-to-text fallback
 
-The account flow stores a pending registration with BCrypt password and OTP
-hashes, sends a six-digit time-limited code by configured SMTP, limits code
-verification to five attempts, and enforces a 60-second resend cooldown. A user
-record is created only after code verification; the user then logs in through
-the existing BCrypt/session/CSRF flow. Existing account records remain usable.
-Globlingo still lacks password reset, IP-based abuse controls, monitoring, and
-account deletion; public registration needs those operational protections.
+### Backend
 
-## Data and deployment
+```bash
+cd GloblingoDemoSpring
+export YOUTUBE_API_KEY=...        # required for video search
+export SUPADATA_API_KEY=...       # primary transcript provider
+export GEMINI_API_KEY=...         # AI Tutor / word meanings
+export MAIL_HOST=... MAIL_USERNAME=... MAIL_PASSWORD=...  # OTP email
+./mvnw spring-boot:run            # serves on http://localhost:8081
+```
 
-The backend keeps `jdbc:h2:file:./data/globlingo` and Hibernate `ddl-auto=update`.
-New account-owned tables are additive; existing tables and rows are preserved.
-Test configuration uses a separate in-memory H2 database. For private beta,
-back up the H2 files while the backend is stopped and test restore procedures.
-For multi-instance or public production deployment, a managed PostgreSQL
-database is recommended. Plan an explicit schema/data migration, test it against
-a copy, validate row counts and constraints, and keep a rollback backup before
-switching; no migration has been run.
+### Frontend
 
-## Main API
+Serve the project root with any static server, e.g.:
 
-- `GET /api/videos/search`, `/api/videos/trending`, `/api/videos/{videoId}` —
-  YouTube Data API-backed; require the key.
-- `GET /api/translate` — reports unavailable (503) until a provider is chosen
-  and configured.
-- `GET /api/auth/csrf`, `POST /api/auth/register`, `POST /api/auth/login`,
-  `POST /api/auth/verify`, `POST /api/auth/resend-verification`,
-  `GET /api/auth/me`, `POST /api/auth/logout` — email verification and session
-  authentication.
-- `GET/POST/DELETE /api/saved` — authenticated, account-scoped video records.
-- `GET/POST/DELETE /api/subscriptions` — authenticated, account-scoped in-app
-  channel preferences, not YouTube subscriptions.
+```bash
+python -m http.server 5500        # then open http://localhost:5500
+```
 
-Unauthenticated access to private APIs returns 401. Authorization scopes every
-record query/deletion to the current account; knowing another record's ID does
-not grant access.
+The frontend talks to the backend at `http://localhost:8081/api` (or the same
+origin in production).
 
-## Verification
+### Environment variables
 
-Run from `GloblingoDemoSpring` with `.\mvnw.cmd test`. Tests use only the
-in-memory test profile. Check frontend syntax from the project root with
-`node --check script.js`. The H2 file is opened in place by `spring-boot:run`;
-run one backend process at a time and stop it from the terminal that started it.
+See `GloblingoDemoSpring/src/main/resources/application.properties` — every
+secret is an env placeholder with a safe empty default. Key ones:
 
+| Variable | Purpose |
+|---|---|
+| `YOUTUBE_API_KEY` | YouTube Data API search/trending |
+| `SUPADATA_API_KEY` | Primary transcript provider |
+| `GEMINI_API_KEY` / `GROQ_API_KEY` | AI Tutor, word meanings |
+| `MAIL_*` | SMTP for OTP verification emails |
+| `YTDLP_COMMAND` / `WHISPER_*` | Local transcript fallbacks |
+
+## API endpoints (selection)
+
+- `GET /api/videos/search`, `/api/videos/trending`, `/api/videos/shorts/search`
+- `GET /api/videos/{id}/transcript?lang=...`
+- `POST /api/word-meaning`, `POST /api/translate`
+- `POST /api/auth/*` (login, register, verify, guest)
+- `GET/POST/DELETE /api/saved`, `/api/subscriptions`
+- `POST /api/tutor/check`
+
+## Testing
+
+```bash
+cd GloblingoDemoSpring
+./mvnw test
+```
+
+Frontend behaviour can be verified in any browser at the served URL; Shorts,
+Watch subtitles and the AI Tutor are the main interactive surfaces.
+
+## Status notes
+
+- Implemented & verified: YouTube search/trending/shorts, timed subtitles with
+  word popups, transcript fallbacks, AI Tutor, auth + OTP, saved videos,
+  responsive layouts.
+- Demo/sample catalogue entries exist alongside real YouTube content.
+- faster-whisper fallback requires local install + `WHISPER_*` configuration.
