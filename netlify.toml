@@ -1,0 +1,14 @@
+# Netlify deployment for the Globlingo frontend.
+# The publish directory (dist/) contains ONLY the static frontend — no Java
+# sources, backend config, databases, logs or IDE files are ever deployed.
+
+[build]
+  # Copy the frontend into dist/ so the publish dir is clean and self-contained.
+  command = "mkdir -p dist && cp index.html style.css script.js data.js dist/ && cp -r assets dist/"
+  publish = "dist"
+
+# SPA-style hash routing needs no redirects, but keep this for safety.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
