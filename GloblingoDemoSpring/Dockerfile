@@ -12,9 +12,14 @@ RUN ./mvnw -q -B package -DskipTests
 
 # ---- Runtime stage: slim JRE, non-root user ----
 FROM eclipse-temurin:17-jre
-# Python 3 + yt-dlp for the free caption fallback (no whisper/models).
-RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip \
-    && pip3 install --break-system-packages --no-cache-dir yt-dlp \
+# Python 3 + yt-dlp[default] (includes yt-dlp-ejs) + Deno JS runtime for
+# YouTube player-response extraction. No whisper/models.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 python3-pip curl unzip ca-certificates \
+    && curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh \
+    && pip3 install --break-system-packages --no-cache-dir --upgrade "yt-dlp[default]" \
+    && deno --version && python3 -m yt_dlp --version \
+    && pip3 show yt-dlp-ejs >/dev/null \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 RUN useradd -r -u 1001 globlingo
