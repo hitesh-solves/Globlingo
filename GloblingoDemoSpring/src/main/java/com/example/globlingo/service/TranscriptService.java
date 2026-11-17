@@ -161,15 +161,28 @@ public class TranscriptService {
         for (JsonNode item : array) {
             String text = item.path("text").asText("").trim();
             if (text.isEmpty()) continue;
-            // ScrapeCreators uses startMs/endMs (string ms); tolerate the
-            // other documented variants too.
-            double start = parseTimeValue(item, "startMs", "offset", "start", "startTime", "from");
-            double end = parseTimeValue(item, "endMs", "end", "endTime", "to");
+            // ScrapeCreators startMs/endMs are ALWAYS milliseconds (verified
+            // against the live API: startMs='320' ↔ startTimeText='0:00').
+            // Parse them directly — never unit-guess documented ms fields.
+            double start = parseMsField(item, "startMs");
+            if (start == 0) start = parseTimeValue(item, "offset", "start", "startTime", "from");
+            double end = parseMsField(item, "endMs");
+            if (end == 0) end = parseTimeValue(item, "end", "endTime", "to");
             double duration = item.has("duration") ? toSeconds(item.path("duration")) : Math.max(0, end - start);
             if (duration <= 0) duration = 3.0; // untimed segment: sane window
             chunks.add(new TranscriptResponse.TranscriptChunk(text, start, duration));
         }
         return chunks;
+    }
+
+    /* Documented-millisecond field: parse numeric/string ms → seconds. */
+    private double parseMsField(JsonNode item, String field) {
+        JsonNode node = item.path(field);
+        if (node.isMissingNode() || node.isNull()) return 0;
+        try {
+            double v = node.isNumber() ? node.asDouble() : Double.parseDouble(node.asText().trim());
+            return v > 0 ? v / 1000.0 : 0;
+        } catch (NumberFormatException e) { return 0; }
     }
 
     /* Reads a timestamp-ish field normalized to seconds: numbers > 10000 are
