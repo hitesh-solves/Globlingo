@@ -38,6 +38,9 @@ public class TranscriptService {
     @Value("${transcript.supadata.api-key:}")
     private String apiKey;
 
+    @Value("${scrapecreators.api-key:}")
+    private String scrapeCreatorsApiKey;
+
     public TranscriptService(ObjectMapper objectMapper, LocalTranscriptProvider localProvider) {
         this.objectMapper = objectMapper;
         this.localProvider = localProvider;
@@ -68,19 +71,103 @@ public class TranscriptService {
     }
 
     private TranscriptResponse fetchTranscript(String videoId, String lang) {
+        YouTubeApiException supadataError;
         try {
             return fetchFromSupadata(videoId, lang);
         } catch (YouTubeApiException exception) {
-            // yt-dlp can still find captions Supadata missed; if it also fails,
-            // surface the original Supadata error so messages stay accurate.
+            supadataError = exception;
+        }
+
+        // Secondary provider: ScrapeCreators — only called when Supadata fails.
+        try {
+            TranscriptResponse scraped = fetchFromScrapeCreators(videoId, lang);
+            cacheResponse(videoId + "|" + lang, scraped);
+            return scraped;
+        } catch (YouTubeApiException scrapeError) {
+            // Local providers (yt-dlp captions / whisper) remain the last resort.
             TranscriptResponse local = tryLocalProviders(videoId, lang);
             if (local != null) {
                 cacheResponse(videoId + "|" + lang, local);
                 return local;
             }
-            throw new YouTubeApiException(exception.getStatusCode(),
-                    exception.getMessage() + " Local fallback providers (yt-dlp/whisper) found no captions for this language.");
+            throw new YouTubeApiException(supadataError.getStatusCode(),
+                    supadataError.getMessage()
+                            + " ScrapeCreators fallback also failed (" + scrapeError.getMessage() + ")."
+                            + " Local fallback providers (yt-dlp/whisper) found no captions for this language.");
         }
+    }
+
+    /* ScrapeCreators transcript endpoint: GET /v1/youtube/video/transcript
+       with x-api-key auth. Returns timed caption segments for public videos. */
+    private TranscriptResponse fetchFromScrapeCreators(String videoId, String lang) {
+        if (scrapeCreatorsApiKey == null || scrapeCreatorsApiKey.isBlank()) {
+            throw new YouTubeApiException(503,
+                    "ScrapeCreators is not configured. Set SCRAPECREATORS_API_KEY.");
+        }
+        String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
+        URI uri = UriComponentsBuilder
+                .fromUriString("https://api.scrapecreators.com/v1/youtube/video/transcript")
+                .queryParam("url", videoUrl)
+                .queryParam("language", lang)
+                .build().encode().toUri();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("x-api-key", scrapeCreatorsApiKey.trim());
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+
+        JsonNode body;
+        try {
+            var response = restTemplate.exchange(uri, HttpMethod.GET, new HttpEntity<>(headers), JsonNode.class);
+            body = response.getBody();
+        } catch (org.springframework.web.client.HttpStatusCodeException exception) {
+            int status = exception.getStatusCode().value();
+            if (status == 404) {
+                throw new YouTubeApiException(404, "Subtitles are not available for this video.");
+            }
+            throw new YouTubeApiException(status == 429 ? 503 : 502,
+                    "ScrapeCreators transcript request failed (HTTP " + status + ").");
+        } catch (RestClientException exception) {
+            throw new YouTubeApiException(502,
+                    "ScrapeCreators could not be reached. Check the backend network connection.");
+        }
+        if (body == null) {
+            throw new YouTubeApiException(502, "ScrapeCreators returned an empty response.");
+        }
+
+        List<TranscriptResponse.TranscriptChunk> chunks = parseScrapeCreatorsChunks(body);
+        if (chunks.isEmpty()) {
+            throw new YouTubeApiException(404, "Subtitles are not available for this video.");
+        }
+
+        List<String> availableLangs = new ArrayList<>();
+        JsonNode langs = body.path("availableLanguages").isArray() ? body.path("availableLanguages")
+                : body.path("availableLangs");
+        langs.forEach(node -> availableLangs.add(node.path("code").asText(node.asText())));
+        if (availableLangs.isEmpty()) availableLangs.add(lang);
+
+        TranscriptResponse response = new TranscriptResponse(videoId,
+                body.path("language").asText(body.path("lang").asText(lang)), availableLangs, chunks);
+        return response;
+    }
+
+    /* ScrapeCreators returns timed segments; tolerate the documented variants
+       (transcript/segments/content arrays, offset+duration or start+end). */
+    private List<TranscriptResponse.TranscriptChunk> parseScrapeCreatorsChunks(JsonNode body) {
+        List<TranscriptResponse.TranscriptChunk> chunks = new ArrayList<>();
+        JsonNode array = body.path("transcript");
+        if (!array.isArray()) array = body.path("segments");
+        if (!array.isArray()) array = body.path("content");
+        if (!array.isArray()) return chunks;
+        for (JsonNode item : array) {
+            String text = item.path("text").asText("").trim();
+            if (text.isEmpty()) continue;
+            double start = item.path("offset").isNumber() ? item.path("offset").asDouble() / 1000.0
+                    : item.has("start") ? item.path("start").asDouble() : 0;
+            double duration = item.path("duration").isNumber() ? item.path("duration").asDouble() / 1000.0
+                    : item.has("end") ? Math.max(0, item.path("end").asDouble() - start) : 0;
+            chunks.add(new TranscriptResponse.TranscriptChunk(text, start, duration));
+        }
+        return chunks;
     }
 
     private TranscriptResponse tryLocalProviders(String videoId, String lang) {

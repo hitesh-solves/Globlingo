@@ -12,8 +12,9 @@ translations, and an AI Tutor for grammar correction and speaking practice.
   real YouTube videos via the YouTube Data API v3.
 - **Interactive subtitles** — timed captions with clickable words, English
   meanings, translations, and click-to-seek.
-- **Transcript pipeline** — Supadata captions with automatic fallback to
-  yt-dlp captions and optional faster-whisper speech-to-text.
+- **Transcript pipeline** — Supadata captions (primary) with ScrapeCreators
+  as a secondary API fallback, then yt-dlp captions and optional
+  faster-whisper speech-to-text as last resorts.
 - **AI Tutor** — grammar correction and speaking practice via browser speech
   recognition, backed by Gemini/Groq with LibreTranslate fallback.
 - **User accounts** — email + OTP verification, guest mode, saved videos and
@@ -25,7 +26,7 @@ translations, and an AI Tutor for grammar correction and speaking practice.
 - **Frontend:** vanilla HTML/CSS/JavaScript (no framework), hash routing.
 - **Backend:** Java 17+, Spring Boot 3, Spring Security, Spring Data JPA.
 - **Database:** H2 (file mode) — swap the JDBC URL for any JPA-compatible DB.
-- **Integrations:** YouTube Data API v3 + IFrame Player API, Supadata,
+- **Integrations:** YouTube Data API v3 + IFrame Player API, Supadata, ScrapeCreators,
   yt-dlp, faster-whisper, dictionaryapi.dev, LibreTranslate, Gemini, Groq,
   SMTP email.
 
@@ -55,6 +56,7 @@ GloblingoDemoSpring/       # Backend (Spring Boot)
 cd GloblingoDemoSpring
 export YOUTUBE_API_KEY=...        # required for video search
 export SUPADATA_API_KEY=...       # primary transcript provider
+export SCRAPECREATORS_API_KEY=... # secondary transcript fallback
 export GEMINI_API_KEY=...         # AI Tutor / word meanings
 export MAIL_HOST=... MAIL_USERNAME=... MAIL_PASSWORD=...  # OTP email
 ./mvnw spring-boot:run            # serves on http://localhost:8081
@@ -80,6 +82,7 @@ secret is an env placeholder with a safe empty default. Key ones:
 |---|---|
 | `YOUTUBE_API_KEY` | YouTube Data API search/trending |
 | `SUPADATA_API_KEY` | Primary transcript provider |
+| `SCRAPECREATORS_API_KEY` | Secondary transcript fallback |
 | `GEMINI_API_KEY` / `GROQ_API_KEY` | AI Tutor, word meanings |
 | `MAIL_*` | SMTP for OTP verification emails |
 | `YTDLP_COMMAND` / `WHISPER_*` | Local transcript fallbacks |
