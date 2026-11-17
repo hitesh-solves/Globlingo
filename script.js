@@ -1993,7 +1993,10 @@ function highlightYouTubeSubtitle() {
     if (inRange) activeIndex = index;
   });
   if (activeIndex === -1) {
-    youtubeSubtitles.lines.forEach((line, index) => { if (line.time <= time) activeIndex = index; });
+    // Only fall back to "last line before now" when real timestamps exist;
+    // an all-zero transcript must not highlight the final entry.
+    const hasTimes = youtubeSubtitles.lines.some((l) => l.time > 0);
+    if (hasTimes) youtubeSubtitles.lines.forEach((line, index) => { if (line.time <= time) activeIndex = index; });
   }
   lines.forEach((line, index) => line.classList.toggle('is-speaking', index === activeIndex));
   highlightWatchWord(activeIndex, time);

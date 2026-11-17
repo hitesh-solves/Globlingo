@@ -161,8 +161,10 @@ public class TranscriptService {
         for (JsonNode item : array) {
             String text = item.path("text").asText("").trim();
             if (text.isEmpty()) continue;
-            double start = parseTimeValue(item, "offset", "start", "startTime", "from");
-            double end = parseTimeValue(item, "end", "endTime", "to");
+            // ScrapeCreators uses startMs/endMs (string ms); tolerate the
+            // other documented variants too.
+            double start = parseTimeValue(item, "startMs", "offset", "start", "startTime", "from");
+            double end = parseTimeValue(item, "endMs", "end", "endTime", "to");
             double duration = item.has("duration") ? toSeconds(item.path("duration")) : Math.max(0, end - start);
             if (duration <= 0) duration = 3.0; // untimed segment: sane window
             chunks.add(new TranscriptResponse.TranscriptChunk(text, start, duration));
@@ -185,7 +187,7 @@ public class TranscriptService {
     private double toSeconds(JsonNode node) {
         if (node.isNumber()) {
             double v = node.asDouble();
-            return v > 10000 ? v / 1000.0 : v; // ms vs s heuristic
+            return v > 600 ? v / 1000.0 : v; // ms vs s heuristic (ms captions rarely <600ms)
         }
         String s = node.asText("").trim();
         if (s.isEmpty()) return 0;
