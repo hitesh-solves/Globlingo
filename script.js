@@ -279,13 +279,33 @@ async function fetchTranscript(videoId, language) {
     }
     const data = result.data || {};
     const chunks = Array.isArray(data.chunks) ? data.chunks : [];
+    // Normalize: parse timestamps defensively, sort chronologically, and drop
+    // exact duplicate chunks (same text AND same start) that providers emit.
+    const seen = new Set();
     const lines = chunks
       .filter((chunk) => chunk && typeof chunk.text === 'string' && chunk.text.trim())
-      .map((chunk) => ({
-        time: Number(chunk.offsetSeconds) || 0,
-        end: (Number(chunk.offsetSeconds) || 0) + (Number(chunk.durationSeconds) || 0),
-        text: chunk.text.trim(),
-      }));
+      .map((chunk) => {
+        let t = Number(chunk.offsetSeconds);
+        if (!isFinite(t) || t < 0) {
+          // Tolerate providers that send raw start/end or string timestamps.
+          const raw = chunk.start !== undefined ? chunk.start : chunk.offset;
+          t = typeof raw === 'string' ? parseTimestamp(raw) : (Number(raw) || 0);
+          if (t > 10000) t = t / 1000; // ms → s
+        }
+        let d = Number(chunk.durationSeconds);
+        if (!isFinite(d) || d <= 0) {
+          const rawEnd = Number(chunk.endSeconds !== undefined ? chunk.endSeconds : chunk.end);
+          d = isFinite(rawEnd) && rawEnd > t ? rawEnd - t : 3;
+        }
+        return { time: t, end: t + d, text: chunk.text.trim() };
+      })
+      .filter((line) => {
+        const key = line.time.toFixed(2) + '|' + line.text;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => a.time - b.time);
     return lines.length
       ? { status: 'ok', lang: data.lang || language, lines }
       : { status: 'empty', message: 'Subtitles are not available for this video.' };
@@ -294,6 +314,14 @@ async function fetchTranscript(videoId, language) {
       ? 'The transcript service is taking too long. Please retry.'
       : 'Could not reach the transcript service. Check that the backend is running.' };
   }
+}
+
+/* Parse "h:mm:ss(.fff)" / "mm:ss(.fff)" timestamp strings to seconds. */
+function parseTimestamp(str) {
+  const parts = String(str).trim().split(':');
+  if (parts.length === 3) return (+parts[0]) * 3600 + (+parts[1]) * 60 + parseFloat(parts[2]);
+  if (parts.length === 2) return (+parts[0]) * 60 + parseFloat(parts[1]);
+  return parseFloat(str) || 0;
 }
 
 /* Ask the backend for a clicked word's definition, translation and AI
@@ -1968,6 +1996,7 @@ function highlightYouTubeSubtitle() {
     youtubeSubtitles.lines.forEach((line, index) => { if (line.time <= time) activeIndex = index; });
   }
   lines.forEach((line, index) => line.classList.toggle('is-speaking', index === activeIndex));
+  highlightWatchWord(activeIndex, time);
   const active = lines[activeIndex];
   if (active && active.scrollIntoView) {
     const list = qs('#subtitle-list');
@@ -1975,6 +2004,33 @@ function highlightYouTubeSubtitle() {
     if (top < list.scrollTop || top > list.scrollTop + list.clientHeight - 80) {
       list.scrollTop = Math.max(0, top - list.clientHeight / 3);
     }
+  }
+}
+
+/* Karaoke-style word highlight for the Watch transcript. Providers give
+   LINE-level timestamps only, so the active word is estimated by mapping the
+   elapsed fraction of the line's [time,end) window onto its character span —
+   an approximation, not true word timing. */
+function highlightWatchWord(activeIndex, time) {
+  const list = qs('#subtitle-list');
+  if (!list) return;
+  list.querySelectorAll('.w.is-word-active').forEach((w) => w.classList.remove('is-word-active'));
+  if (activeIndex < 0 || !youtubeSubtitles) return;
+  const line = youtubeSubtitles.lines[activeIndex];
+  if (!line || !(line.end > line.time)) return;
+  const frac = Math.min(1, Math.max(0, (time - line.time) / (line.end - line.time)));
+  const row = list.querySelectorAll('.sub')[activeIndex];
+  if (!row) return;
+  const buttons = row.querySelectorAll('.w');
+  if (!buttons.length) return;
+  let total = 0;
+  buttons.forEach((b) => { total += b.textContent.length; });
+  if (!total) return;
+  const pos = frac * total;
+  let acc = 0;
+  for (const button of buttons) {
+    acc += button.textContent.length;
+    if (pos <= acc) { button.classList.add('is-word-active'); break; }
   }
 }
 

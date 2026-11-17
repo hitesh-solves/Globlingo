@@ -161,13 +161,49 @@ public class TranscriptService {
         for (JsonNode item : array) {
             String text = item.path("text").asText("").trim();
             if (text.isEmpty()) continue;
-            double start = item.path("offset").isNumber() ? item.path("offset").asDouble() / 1000.0
-                    : item.has("start") ? item.path("start").asDouble() : 0;
-            double duration = item.path("duration").isNumber() ? item.path("duration").asDouble() / 1000.0
-                    : item.has("end") ? Math.max(0, item.path("end").asDouble() - start) : 0;
+            double start = parseTimeValue(item, "offset", "start", "startTime", "from");
+            double end = parseTimeValue(item, "end", "endTime", "to");
+            double duration = item.has("duration") ? toSeconds(item.path("duration")) : Math.max(0, end - start);
+            if (duration <= 0) duration = 3.0; // untimed segment: sane window
             chunks.add(new TranscriptResponse.TranscriptChunk(text, start, duration));
         }
         return chunks;
+    }
+
+    /* Reads a timestamp-ish field normalized to seconds: numbers > 10000 are
+       treated as milliseconds; "h:mm:ss(.ms)" strings are parsed. */
+    private double parseTimeValue(JsonNode item, String... fields) {
+        for (String field : fields) {
+            JsonNode node = item.path(field);
+            if (node.isMissingNode() || node.isNull()) continue;
+            double value = toSeconds(node);
+            if (value > 0) return value;
+        }
+        return 0;
+    }
+
+    private double toSeconds(JsonNode node) {
+        if (node.isNumber()) {
+            double v = node.asDouble();
+            return v > 10000 ? v / 1000.0 : v; // ms vs s heuristic
+        }
+        String s = node.asText("").trim();
+        if (s.isEmpty()) return 0;
+        if (s.matches("^[0-9]+(\\.[0-9]+)?$")) {
+            double v = Double.parseDouble(s);
+            return v > 10000 ? v / 1000.0 : v;
+        }
+        String[] parts = s.split(":");
+        try {
+            if (parts.length == 3) {
+                return Integer.parseInt(parts[0]) * 3600 + Integer.parseInt(parts[1]) * 60
+                        + Double.parseDouble(parts[2]);
+            }
+            if (parts.length == 2) {
+                return Integer.parseInt(parts[0]) * 60 + Double.parseDouble(parts[1]);
+            }
+        } catch (NumberFormatException ignored) { /* fall through */ }
+        return 0;
     }
 
     private TranscriptResponse tryLocalProviders(String videoId, String lang) {

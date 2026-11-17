@@ -958,7 +958,8 @@ body.is-compact .sidebar__label { display: none; }
   .short-tall__subs-list .sub { padding: 6px 6px; gap: 8px; }
   .short-tall__subs-list .sub__words { font-size: 0.88rem; line-height: 1.6; }
   .short-tall__subs-list .sub__time { width: 34px; font-size: 0.66rem; }
-  .short-tall__subs-list .w.is-word-active { background: var(--accent); color: #fff; }
+  .subs .w.is-word-active { background: var(--accent); color: #fff; }
+.short-tall__subs-list .w.is-word-active { background: var(--accent); color: #fff; }
   .short-tall__subs-scroll { padding: 8px 8px; }
 }
 .short-tall__info h3 { margin: 0 0 4px; font-size: 0.9rem; font-weight: 600; line-height: 1.35; }
@@ -1223,6 +1224,7 @@ body.is-welcome .mode-chip { opacity: .75; }
 .w:hover { background: var(--accent-soft); color: var(--text); }
 .w.is-open { background: var(--accent); color: #fff; }
 /* Karaoke word highlight inside Shorts subtitles (driven by playback time). */
+.subs .w.is-word-active { background: var(--accent); color: #fff; }
 .short-tall__subs-list .w.is-word-active { background: var(--accent); color: #fff; }
 
 .sub__translation { margin: 3px 0 0; color: var(--muted); font-size: 0.86rem; }
