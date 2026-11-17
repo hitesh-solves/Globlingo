@@ -274,12 +274,20 @@ public class TranscriptService {
         JsonNode content = body.path("content");
         List<TranscriptResponse.TranscriptChunk> chunks = new ArrayList<>();
         if (content.isArray()) {
+            // Unit detection: caption durations are ~1.5-8s. If raw durations
+            // are already small (<100), the provider sent seconds — do NOT
+            // divide by 1000 or every timestamp collapses to ~0:00.
+            double scale = 0.001;
+            for (JsonNode probe : content) {
+                double d = probe.path("duration").asDouble(-1);
+                if (d >= 0 && d < 100) { scale = 1.0; break; }
+            }
             for (JsonNode chunk : content) {
                 String text = chunk.path("text").asText("").trim();
                 if (text.isEmpty()) continue;
                 chunks.add(new TranscriptResponse.TranscriptChunk(text,
-                        chunk.path("offset").asDouble(0) / 1000.0,
-                        chunk.path("duration").asDouble(0) / 1000.0));
+                        chunk.path("offset").asDouble(0) * scale,
+                        chunk.path("duration").asDouble(0) * scale));
             }
         } else if (content.isTextual() && !content.asText().isBlank()) {
             // Plain-text fallback: split into sentences without timestamps.
